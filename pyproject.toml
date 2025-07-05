@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
+    "requests-oauthlib>=2.0.0",
 ]

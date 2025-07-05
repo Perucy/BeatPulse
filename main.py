@@ -2,24 +2,61 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from requests_oauthlib import OAuth2Session
 
 load_dotenv()
 
-whoop_client_id = os.getenv("WHOOP_CLIENT_ID")
-whoop_client_secret = os.getenv("WHOOP_CLIENT_SECRET")
-
 class WhoopClient:
-    def __init__(self, client_id, client_secret):
-        self.client_id = client_id,
-        self.client_secret = client_secret,
+    def __init__(self):
+        self.client_id = os.getenv("WHOOP_CLIENT_ID"),
+        self.client_secret = os.getenv("WHOOP_CLIENT_SECRET"),
         self.base_url = "https://api.prod.whoop.com"
+        self.callback_url = os.getenv("WHOOP_CALLBACK_URL")
+
+        self.auth_url = f"{self.base_url}/oauth/oauth2/auth"
+        self.token_url = f"{self.base_url}/oauth/oauth2/token"
+
+        self.scope = ['offline', 'read:profile']
+        self.oauth = None
+        self.token = None
+
+    def get_authorization_url(self):
+        self.oauth = OAuth2Session(
+            self.client_id[0],
+            scope=self.scope,
+            redirect_uri=self.callback_url,
+            state=True
+        )
+
+        auth_url, state = self.oauth.authorization_url(self.auth_url)
+
+        print(f"Please go to {auth_url} and authorize access.")
+
+    def get_access_token(self, username, password):
+        tkn_url = f"{self.base_url}/oauth/oauth2/token"
+
+        headers = {
+            "grant_type": "password",
+            "username": username,
+            "password": password,
+            "client_id": self.client_id[0],
+            "client_secret": self.client_secret[0]
+        }
+
+        response = requests.post(tkn_url, headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Error getting access token: {response.status_code} - {response.text}")
 
 def main():
-    w_client = WhoopClient(whoop_client_id, whoop_client_secret)
-    # print("Whoop client id:", w_client.client_id[0])
-    # print("Whoop client secret:", w_client.client_secret[0])
-    # print("Base URL:", w_client.base_url)
+    client = WhoopClient()
+
+    client.get_authorization_url()
+    
+    
 
 
 if __name__ == "__main__":
     main()
+    
