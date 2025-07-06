@@ -13,6 +13,7 @@ class WhoopClient:
         self.client_id = os.getenv("WHOOP_CLIENT_ID")
         self.client_secret = os.getenv("WHOOP_CLIENT_SECRET")
         self.base_url = "https://api.prod.whoop.com"
+        self.api_base_url = "https://api.prod.whoop.com/developer/v1"
         self.callback_url = os.getenv("WHOOP_CALLBACK_URL")
 
         self.auth_url = f"{self.base_url}/oauth/oauth2/auth"
@@ -21,9 +22,9 @@ class WhoopClient:
         self.scope = ['read:workout', 'read:profile']
         self.oauth = None
         self.token = None
-        self.auth_response = None
+    
 
-    def get_authorization_url(self):
+    def get_authorization_token(self):
         try: 
             self.oauth = OAuth2Session(
                 self.client_id,
@@ -34,35 +35,24 @@ class WhoopClient:
             auth_url, state = self.oauth.authorization_url(self.auth_url)
             print(f"Visit this URL to authorize: {auth_url}")
             
-            self.auth_response = input("Enter the full callback URL after authorization: ")
-        except Exception as e:
-            print(f"Error during authorization URL generation: {e}")
-            
-
-
-    def get_access_token(self):
-        try:
+            auth_response = input("Enter the full callback URL after authorization: ")
             self.token = self.oauth.fetch_token(
                 self.token_url,
-                authorization_response=self.auth_response,
+                authorization_response=auth_response,
                 client_secret=self.client_secret,  
                 include_client_id=True,
                 method='POST'
             )
-            # print("Authentication successful!")
-            # print("Access Token:", self.token['access_token'])
-            # if 'refresh_token' in self.token:
-            #     print("Refresh Token:", self.token['refresh_token'])
         except Exception as e:
-            print(f"Error during token fetch: {e}")
+            print(f"Error during authorization URL generation: {e}")
+            
            
-
     def get_user_profile(self):
         if not self.token['access_token']:
             print("No access token available. Please authenticate first.")
             return None
         
-        url = f"{self.base_url}/developer/v1/user/profile/basic"
+        url = f"{self.api_base_url}/user/profile/basic"
         headers = {
             "Authorization": f"Bearer {self.token['access_token']}",
             "Content-Type": "application/json"
@@ -80,7 +70,7 @@ class WhoopClient:
             print("No access token available. Please authenticate first.")
             return None
         
-        url = f"{self.base_url}/developer/v1/activity/workout"
+        url = f"{self.api_base_url}/activity/workout"
         headers = {
             "Authorization": f"Bearer {self.token['access_token']}",
             "Content-Type": "application/json"
@@ -97,9 +87,8 @@ class WhoopClient:
 def main():
     client = WhoopClient()
 
-    client.get_authorization_url()
+    client.get_authorization_token()
 
-    client.get_access_token()
 
     prof = client.get_user_profile()
     #print(prof)
