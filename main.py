@@ -37,8 +37,7 @@ class WhoopClient:
             self.auth_response = input("Enter the full callback URL after authorization: ")
         except Exception as e:
             print(f"Error during authorization URL generation: {e}")
-            if hasattr(e, 'response') and e.response:
-                print("Response content:", e.response.text)
+            
 
 
     def get_access_token(self):
@@ -50,14 +49,50 @@ class WhoopClient:
                 include_client_id=True,
                 method='POST'
             )
-            print("Authentication successful!")
-            print("Access Token:", self.token['access_token'])
+            # print("Authentication successful!")
+            # print("Access Token:", self.token['access_token'])
             # if 'refresh_token' in self.token:
             #     print("Refresh Token:", self.token['refresh_token'])
         except Exception as e:
             print(f"Error during token fetch: {e}")
-            if hasattr(e, 'response') and e.response:
-                print("Response content:", e.response.text)
+           
+
+    def get_user_profile(self):
+        if not self.token['access_token']:
+            print("No access token available. Please authenticate first.")
+            return None
+        
+        url = f"{self.base_url}/developer/v1/user/profile/basic"
+        headers = {
+            "Authorization": f"Bearer {self.token['access_token']}",
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching user profile: {e}")
+            return None
+        
+    def get_user_workout(self):
+        if not self.token['access_token']:
+            print("No access token available. Please authenticate first.")
+            return None
+        
+        url = f"{self.base_url}/developer/v1/activity/workout"
+        headers = {
+            "Authorization": f"Bearer {self.token['access_token']}",
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching user workout: {e}")
+            return None
+
 
 def main():
     client = WhoopClient()
@@ -65,6 +100,12 @@ def main():
     client.get_authorization_url()
 
     client.get_access_token()
+
+    prof = client.get_user_profile()
+    #print(prof)
+
+    workout = client.get_user_workout()
+    #print(workout)
     
     
 
