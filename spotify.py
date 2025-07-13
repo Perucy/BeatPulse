@@ -3,8 +3,13 @@ import os
 import json
 from dotenv import load_dotenv
 from requests_oauthlib import OAuth2Session
+from flask import Flask, request, redirect, jsonify
+from flask_cors import CORS
 
 load_dotenv()
+app = Flask(__name__)
+CORS(app)
+
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -23,28 +28,25 @@ class SpotifyClient:
         self.oauth = None
         self.token = None
 
-    def get_authorization_token(self):
-        try:
-            self.oauth = OAuth2Session(
-                client_id=self.client_id,
-                scope=self.scope,
-                redirect_uri=self.redirect_uri
-            )
-            auth_url, state = self.oauth.authorization_url(self.auth_url)
-            print(f"Visit this URL to authorize: {auth_url}")
-
-            auth_response = input("Enter the full callback URL after authorization: ")
-            self.token = self.oauth.fetch_token(
-                self.token_url,
-                authorization_response=auth_response, 
-                client_secret=self.client_secret,
-                include_client_id=True,
-                method='POST'
-            )
-        except Exception as e:
-            print(f"Error during authorization: {e}")
-            return None
-        
+    def get_authorization_url(self):
+        self.oauth = OAuth2Session(
+            client_id=self.client_id,
+            scope=self.scope,
+            redirect_uri=self.redirect_uri
+        )
+        auth_url, state = self.oauth.authorization_url(self.auth_url)
+        return auth_url
+    
+    def get_token_from_code(self, callback_url):
+        self.token = self.oauth.fetch_token(
+            self.token_url,
+            authorization_response=callback_url, 
+            client_secret=self.client_secret,
+            include_client_id=True,
+            method='POST'
+        )
+        return self.token
+    
     def get_top_artists(self):
         if not self.token['access_token']:
             print("Access token is not available. Please authenticate first.")
@@ -63,10 +65,21 @@ class SpotifyClient:
             print(f"Error fetching top artists: {e}")
             return None
 
-
-
-if __name__ == "__main__":
+@app.route('/spotify/auth_url')
+def get_auth_url():
     client = SpotifyClient()
-    client.get_authorization_token()
-    artist = client.get_top_artists()
-    print(json.dumps(artist, indent=2))
+    auth_url = client.get_authorization_url()
+    return jsonify({"auth_url": auth_url})
+
+@app.route('/spotify/callback')
+def handle_callback():
+    client = SpotifyClient()
+    callback_url = request.args.get('url')
+    print(f"Callback URL: {callback_url}")
+    token = client.get_token_from_code(callback_url)
+    return jsonify(token)
+@app.route('/')
+def home():
+    return "Spotify Auth Server is Running"
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5001, debug=True)  # Set debug=True for development
