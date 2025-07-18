@@ -74,12 +74,21 @@ def get_auth_url():
 @app.route('/spotify/callback')
 def handle_callback():
     client = SpotifyClient()
-    callback_url = request.args.get('url')
-    print(f"Callback URL: {callback_url}")
-    token = client.get_token_from_code(callback_url)
-    return jsonify(token)
+    auth_code = request.args.get('code')
+
+    if not auth_code:
+        return jsonify({"error": "Authorization code not provided"}), 400
+    
+    callback_url = f"{client.redirect_uri}?code={auth_code}"
+
+    try:
+        token = client.get_token_from_code(callback_url)
+        return jsonify(token)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
 @app.route('/')
 def home():
     return "Spotify Auth Server is Running"
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5001, debug=True)  # Set debug=True for development
+    app.run(host='0.0.0.0', port=5001, debug=True) 
