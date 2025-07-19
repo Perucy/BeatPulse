@@ -24,7 +24,12 @@ class SpotifyClient:
         self.auth_url = f"{self.base_url}/authorize"
         self.token_url = f"{self.base_url}/api/token"
 
-        self.scope = ["user-read-recently-played", "user-top-read"]
+        self.scope = [
+            "user-read-recently-played", 
+            "user-top-read",
+            "playlist-read-private",
+            "playlist-read-collaborative"
+        ]
         self.oauth = None
         self.token = None
 
@@ -47,23 +52,33 @@ class SpotifyClient:
         )
         return self.token
     
-    def get_top_artists(self):
-        if not self.token['access_token']:
-            print("Access token is not available. Please authenticate first.")
-            return None
-        
-        url = f"{self.api_base_url}/me/top/artists"
+    def make_spotify_request(self, endpoint, access_token):
         headers = {
-            "Authorization": f"Bearer {self.token['access_token']}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
         }
+        url = f"{self.api_base_url}{endpoint}"
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching top artists: {e}")
+            print(f"Error making this request to {endpoint}: {e}")
             return None
+
+    def get_user_profile(self, access_token):
+        endpoint = "/me"
+        return self.make_spotify_request(endpoint, access_token)
+      
+    def get_top_artists(self, access_token):
+        endpoint = "/me/top/artists"
+        return self.make_spotify_request(endpoint, access_token)
+    
+    def get_user_playlists(self, access_token):
+        endpoint = "/me/playlists?limit=5"
+        return self.make_spotify_request(endpoint, access_token)
+        
+user_tokens = {} 
 
 @app.route('/spotify/auth_url')
 def get_auth_url():
@@ -83,10 +98,50 @@ def handle_callback():
 
     try:
         token = client.get_token_from_code(callback_url)
-        return jsonify(token)
+        user_profile = client.get_user_profile(token['access_token'])
+        if user_profile and 'id' in user_profile:
+            user_id = user_profile['id']
+            user_tokens[user_id] = token
+
+            return jsonify({
+                "access_token": token['access_token'],
+                "user_id": user_id,
+                "expires_in": token.get('expires_in'),
+                "refresh_token": token.get('refresh_token')
+            })
+        else:
+            return jsonify({"error": "Failed to retrieve user profile"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route('/spotify/profile/<user_id>')
+def get_user_profile(user_id):
+    if user_id not in user_tokens:
+        return jsonify({"error": "User not authenticated"}), 401
     
+    access_token = user_tokens[user_id]['access_token']
+    client = SpotifyClient()
+    profile = client.get_user_profile(access_token)
+    
+    if profile:
+        return jsonify(profile)
+    else:
+        return jsonify({"error": "Failed to retrieve user profile"}), 500
+
+@app.route('/spotify/playlists/<user_id>')  
+def get_user_playlists(user_id):
+    if user_id not in user_tokens:
+        return jsonify({"error": "User not authenticated"}), 401
+    
+    access_token = user_tokens[user_id]['access_token']
+    client = SpotifyClient()
+    playlists = client.get_user_playlists(access_token)
+    
+    if playlists:
+        return jsonify(playlists)
+    else:
+        return jsonify({"error": "Failed to retrieve user playlists"}), 500
+     
 @app.route('/')
 def home():
     return "Spotify Auth Server is Running"
