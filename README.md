@@ -1,97 +1,282 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 🎵 BeatPulse AI
 
-# Getting Started
+**Biometric-driven music adaptation powered by AI coaching**
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+BeatPulse AI is a React Native prototype that dynamically adapts your music to your real-time biometric data. By integrating WHOOP wearable data with Spotify/Apple Music, the app creates personalized workout experiences with AI-powered audio coaching cues.
 
-## Step 1: Start Metro
+![Status](https://img.shields.io/badge/status-prototype-yellow)
+![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## 🎯 **What It Does**
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- **Real-time Music Adaptation**: Automatically adjusts music BPM based on your heart rate
+- **Biometric Integration**: Pulls live data from WHOOP wearables during workouts
+- **Smart Playlists**: Selects tracks from Spotify/Apple Music that match your workout intensity
+- **AI Coaching**: Provides personalized audio cues to optimize your training
+- **Seamless Experience**: Works across iOS and Android with secure OAuth authentication
 
-```sh
-# Using npm
+## 🏗️ **Architecture**
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  React Native   │    │   Node.js API   │    │  External APIs  │
+│      App        │◄──►│     Server      │◄──►│ Spotify, WHOOP  │
+│                 │    │                 │    │  Apple Music    │
+│  • OAuth Flow   │    │  • Token Mgmt   │    │                 │
+│  • UI/UX        │    │  • API Proxy    │    │                 │
+│  • Audio Player │    │  • BPM Mapping  │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### **Tech Stack**
+- **Frontend**: React Native, react-native-app-auth
+- **Backend**: Node.js, Express, axios
+- **Authentication**: OAuth 2.0 with PKCE
+- **Storage**: Secure token management
+- **APIs**: Spotify Web API, WHOOP API, Apple Music API
+
+## 🚀 **Quick Start**
+
+### **Prerequisites**
+- Node.js 16+ and npm
+- React Native CLI
+- iOS Simulator (Mac) or Android Studio
+- Spotify Developer Account
+- WHOOP Developer Account (pending approval)
+
+### **1. Clone the Repository**
+```bash
+git clone https://github.com/yourusername/beatpulse-ai.git
+cd beatpulse-ai
+```
+
+### **2. Backend Setup**
+```bash
+# Install server dependencies
+cd server
+npm install
+
+# Create environment file
+cp .env.example .env
+# Edit .env with your API credentials
+
+# Start the server
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
+### **3. Mobile App Setup**
+```bash
+# Install app dependencies
+cd ..
+npm install
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+# iOS setup (Mac only)
+cd ios && pod install && cd ..
 
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+# Run the app
+npx react-native run-ios
+# or
+npx react-native run-android
 ```
 
-### iOS
+### **4. Configure API Credentials**
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+#### **Spotify Setup**
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new app
+3. Set redirect URI to: `beatpulse://callback`
+4. Copy Client ID and Secret to `.env`
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+#### **WHOOP Setup**
+1. Apply for developer access at [WHOOP Developer Portal](https://developer.whoop.com)
+2. Once approved, configure credentials in `.env`
 
-```sh
-bundle install
+## 🔧 **Configuration**
+
+### **Environment Variables** (`server/.env`)
+```env
+# Spotify API
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+# WHOOP API
+WHOOP_CLIENT_ID=your_whoop_client_id
+WHOOP_CLIENT_SECRET=your_whoop_client_secret
+
+# Server
+PORT=3000
 ```
 
-Then, and every time you update your native dependencies, run:
+### **URL Scheme Configuration**
 
-```sh
-bundle exec pod install
+The app uses custom URL schemes for OAuth redirects:
+
+**iOS** (`ios/BeatPulseAI/Info.plist`):
+```xml
+<key>CFBundleURLSchemes</key>
+<array>
+    <string>beatpulse</string>
+</array>
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+**Android** (`android/app/src/main/AndroidManifest.xml`):
+```xml
+<data android:scheme="beatpulse" />
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 🎮 **How It Works**
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+### **OAuth Flow**
+1. User taps "Connect Spotify" in app
+2. Redirected to Spotify login (secure browser)
+3. User approves permissions
+4. App receives authorization code
+5. Backend exchanges code for access token
+6. Token stored securely for API calls
 
-## Step 3: Modify your app
+### **Biometric Music Adaptation**
+```javascript
+// Simplified logic
+const heartRate = await whoop.getCurrentHeartRate();
+const targetBPM = mapHeartRateToBPM(heartRate);
+const tracks = await spotify.searchByBPM(targetBPM);
+await spotify.playTrack(tracks[0]);
+```
 
-Now that you have successfully run the app, let's make changes!
+### **Heart Rate → BPM Mapping**
+- **< 100 bpm**: Warm-up tracks (90-110 BPM)
+- **100-120 bpm**: Moderate intensity (110-130 BPM)  
+- **> 120 bpm**: High intensity (130+ BPM)
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## 📁 **Project Structure**
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+```
+beatpulse-ai/
+├── server/                 # Node.js backend
+│   ├── index.js           # Main server file
+│   ├── package.json       # Dependencies
+│   └── .env              # API credentials
+├── src/                   # React Native source
+│   ├── screens/          # App screens
+│   ├── services/         # API services
+│   └── components/       # Reusable components
+├── ios/                  # iOS configuration
+├── android/              # Android configuration
+└── package.json         # React Native dependencies
+```
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+## 🔌 **API Endpoints**
 
-## Congratulations! :tada:
+### **Authentication**
+- `POST /spotify/token` - Exchange OAuth code for access token
+- `GET /spotify/token/:userId` - Retrieve stored access token
 
-You've successfully run and modified your React Native App. :partying_face:
+### **Testing**
+- `GET /health` - Server health check
+- `GET /test/spotify/:userId` - Test Spotify API integration
 
-### Now what?
+## 🧪 **Testing**
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+### **Server Testing**
+```bash
+# Test server health
+curl http://localhost:3000/health
 
-# Troubleshooting
+# Test OAuth endpoint (after mobile auth)
+curl -X POST http://localhost:3000/spotify/token \
+  -H "Content-Type: application/json" \
+  -d '{"authCode":"...", "userId":"test-user"}'
+```
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+### **Mobile Testing**
+- Use React Native debugger for network requests
+- Test OAuth flow with actual Spotify account
+- Verify URL scheme handling on device
 
-# Learn More
+## 🛡️ **Security Features**
 
-To learn more about React Native, take a look at the following resources:
+- **OAuth 2.0 with PKCE**: Industry-standard secure authentication
+- **No passwords stored**: Users authenticate directly with Spotify/WHOOP
+- **Token expiration**: Automatic refresh of expired tokens
+- **Secure storage**: Sensitive data encrypted on device
+- **Server-side secrets**: Client secrets never exposed to mobile app
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## 📱 **Current Features**
+
+✅ **Implemented**
+- OAuth authentication for Spotify
+- Secure token management
+- Basic server infrastructure
+- Mobile app foundation
+
+🚧 **In Development**
+- WHOOP integration
+- Real-time heart rate monitoring
+- Music BPM matching algorithm
+- AI coaching audio generation
+
+📋 **Planned**
+- Apple Music integration
+- Advanced AI coaching
+- Team workout synchronization
+- Spatial audio features
+
+## 🚨 **Known Issues**
+
+- **WHOOP API access**: Requires developer approval (may take weeks)
+- **iOS simulator**: OAuth testing requires physical device
+- **Token storage**: Currently in-memory (use database for production)
+
+## 🤝 **Contributing**
+
+This is a learning prototype, but contributions are welcome!
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📚 **Learning Resources**
+
+- [OAuth 2.0 Guide](https://oauth.net/2/)
+- [React Native Documentation](https://reactnative.dev/)
+- [Spotify Web API Reference](https://developer.spotify.com/documentation/web-api/)
+- [WHOOP API Documentation](https://developer.whoop.com/)
+
+## 📄 **License**
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🎯 **Roadmap**
+
+### **Phase 1: Core Integration** (Current)
+- [x] Basic OAuth implementation
+- [x] Server infrastructure
+- [ ] WHOOP API integration
+- [ ] Music BPM matching
+
+### **Phase 2: AI Features**
+- [ ] Audio coaching generation
+- [ ] Personalized workout recommendations
+- [ ] Advanced biometric analysis
+
+### **Phase 3: Enhanced Experience**
+- [ ] Apple Music integration
+- [ ] Team features
+- [ ] Spatial audio
+- [ ] Production deployment
+
+## 🆘 **Support**
+
+Having issues? Check out:
+- [Troubleshooting Guide](docs/troubleshooting.md)
+- [OAuth Setup Guide](docs/oauth-setup.md)
+- [API Integration Examples](docs/api-examples.md)
+
+---
+
+**Built with ❤️ for fitness enthusiasts who love data-driven music experiences**
+
+*Note: This is a prototype for learning and experimentation. Not intended for production use without additional security and scalability considerations.*
