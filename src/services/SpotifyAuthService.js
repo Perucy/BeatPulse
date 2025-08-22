@@ -19,7 +19,7 @@ class SpotifyAuthService {
                 'streaming'
             ],
             authorizationEndpoint: 'https://accounts.spotify.com/authorize',
-            tokenEndpoint: 'https://aacounts.spotify.com/api/token',
+            tokenEndpoint: 'https://accounts.spotify.com/api/token',
             additionalParameters: {},
             customHeaders: {}
         };

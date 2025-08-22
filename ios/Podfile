@@ -16,7 +16,10 @@ end
 
 target 'BeatPulse' do
   config = use_native_modules!
-
+  
+  # ADD THIS LINE - Force AppAuth to compatible version
+  pod 'AppAuth', '~> 1.7.6'
+  
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
