@@ -1,3 +1,4 @@
+// server/index.js - KEEP THIS EXACT CODE
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -38,9 +39,9 @@ app.post('/spotify/token', async (req, res) => {
             }
         );
 
-        console.log('✅ Successfully received tokens from Spotify')
+        console.log('✅ Successfully received tokens from Spotify');
 
-        const { access_token, refresh_token, expires_in } = response.data;
+        const { access_token, refresh_token, expires_in, scope } = response.data;
 
         userTokens.set(userId, {
             spotify: {
@@ -51,14 +52,20 @@ app.post('/spotify/token', async (req, res) => {
         });
 
         res.json({
+            access_token: access_token,
+            refresh_token: refresh_token,
+            expires_in: expires_in,
+            scope: scope,
+            token_type: 'Bearer',
             success: true,
             message: 'Spotify connected successfully'
-        })
+        });
+
     } catch (error) {
-        console.error('❌ Token exchange failed:', error.response?.data);
+        console.error('❌ Token exchange failed:', error.response?.data || error.message);
         res.status(400).json({
             error: 'Failed to connect Spotify',
-            details: error.response?.data
+            details: error.response?.data || error.message
         });
     }
 });
@@ -83,11 +90,12 @@ app.get('/spotify/token/:userId', (req, res) => {
         });
     }
 
-    res,json({
+    res.json({
         accessToken,
         expiresAt
     });
 });
+
 app.get('/test/spotify/:userId', async (req, res) => {
     const { userId } = req.params;
     
@@ -100,7 +108,6 @@ app.get('/test/spotify/:userId', async (req, res) => {
             });
         }
         
-        // Make API call to Spotify using stored token
         const spotifyResponse = await axios.get('https://api.spotify.com/v1/me', {
             headers: {
                 'Authorization': `Bearer ${userToken.spotify.accessToken}`

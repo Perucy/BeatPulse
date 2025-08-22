@@ -1,4 +1,10 @@
 {
   "name": "BeatPulse",
-  "displayName": "BeatPulse"
+  "displayName": "BeatPulse",
+  "expo": {
+    "scheme": "beatpulse",
+    "ios": {
+      "bundleIdentifier": "com.perucy.beatpulse"
+    }
+  }
 }
